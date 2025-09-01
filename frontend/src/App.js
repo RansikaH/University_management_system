@@ -19,6 +19,10 @@ function App() {
       <div className="App">
         <NavigationBar />
         <Container className="mt-4">
+          <div style={{textAlign: 'center', padding: '20px'}}>
+            <h1>University Management System</h1>
+            <p>System is loading... If this persists, check deployment logs.</p>
+          </div>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/test-connection" element={<ConnectionTest />} />
