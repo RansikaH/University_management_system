@@ -29,7 +29,7 @@ spring:
       allowed-headers: "*"
 
 server:
-  port: ${PORT:8080}
+  port: 8080
   servlet:
     context-path: /
   tomcat:
