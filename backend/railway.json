@@ -4,7 +4,6 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "java -Dserver.port=$PORT -jar app.jar",
     "healthcheckTimeout": 300
   }
 }
