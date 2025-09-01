@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: course-management
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
+  web:
+    cors:
+      allowed-origins: "http://localhost:3000"
+      allowed-methods: "*"
+      allowed-headers: "*"
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  tomcat:
+    use-relative-redirects: false
+  compression:
+    enabled: false
+  http2:
+    enabled: false
+
+logging:
+  level:
+    com.university: DEBUG

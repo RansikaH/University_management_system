@@ -1,0 +1,78 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8f9fa;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  color: #007bff !important;
+}
+
+.card {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: none;
+  margin-bottom: 20px;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  font-weight: bold;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.table {
+  background-color: white;
+}
+
+.table th {
+  background-color: #f8f9fa;
+  border-top: none;
+  font-weight: 600;
+}
+
+.loading {
+  text-align: center;
+  padding: 50px;
+}
+
+.error {
+  color: #dc3545;
+  text-align: center;
+  padding: 20px;
+}
+
+.course-card {
+  transition: transform 0.2s;
+}
+
+.course-card:hover {
+  transform: translateY(-2px);
+}
+
+.badge {
+  font-size: 0.8em;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

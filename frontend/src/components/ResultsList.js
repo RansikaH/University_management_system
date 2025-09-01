@@ -1,0 +1,461 @@
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Card, Form, Row, Col, Badge, Alert, Modal, Dropdown, ButtonGroup } from 'react-bootstrap';
+import { resultAPI, studentAPI, courseAPI } from '../services/api';
+
+const ResultsList = () => {
+  const [results, setResults] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedResult, setSelectedResult] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [newResult, setNewResult] = useState({
+    studentId: '',
+    courseId: '',
+    score: '',
+    examType: 'FINAL',
+    remarks: ''
+  });
+  const [updateData, setUpdateData] = useState({
+    score: '',
+    examType: 'FINAL',
+    remarks: ''
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [resultsRes, studentsRes, coursesRes] = await Promise.all([
+        resultAPI.getAll(),
+        studentAPI.getAll(),
+        courseAPI.getAll()
+      ]);
+      
+      setResults(resultsRes.data);
+      setStudents(studentsRes.data);
+      setCourses(coursesRes.data);
+    } catch (error) {
+      setError('Failed to fetch data');
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilter = async () => {
+    try {
+      let response;
+      if (selectedStudent && selectedCourse) {
+        response = await resultAPI.getByStudentAndCourse(selectedStudent, selectedCourse);
+      } else if (selectedStudent) {
+        response = await resultAPI.getByStudent(selectedStudent);
+      } else if (selectedCourse) {
+        response = await resultAPI.getByCourse(selectedCourse);
+      } else {
+        response = await resultAPI.getAll();
+      }
+      setResults(response.data);
+    } catch (error) {
+      setError('Failed to filter results');
+    }
+  };
+
+  const handleCreateResult = async () => {
+    try {
+      await resultAPI.create({
+        ...newResult,
+        score: parseFloat(newResult.score),
+        studentId: parseInt(newResult.studentId),
+        courseId: parseInt(newResult.courseId)
+      });
+      setShowModal(false);
+      setNewResult({ studentId: '', courseId: '', score: '', examType: 'FINAL', remarks: '' });
+      fetchData();
+    } catch (error) {
+      setError('Failed to create result');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this result?')) {
+      try {
+        await resultAPI.delete(id);
+        fetchData();
+      } catch (error) {
+        setError('Failed to delete result');
+      }
+    }
+  };
+
+  const handleUpdate = (result) => {
+    setSelectedResult(result);
+    setUpdateData({
+      score: result.score?.toString() || '',
+      examType: result.examType || 'FINAL',
+      remarks: result.remarks || ''
+    });
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!updateData.score) {
+      setError('Please enter a score');
+      return;
+    }
+
+    try {
+      const resultData = {
+        ...updateData,
+        score: parseFloat(updateData.score)
+      };
+      await resultAPI.update(selectedResult.id, resultData);
+      setShowUpdateModal(false);
+      setSelectedResult(null);
+      setError('');
+      fetchData();
+    } catch (error) {
+      setError('Failed to update result: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const getStudentName = (studentId) => {
+    const student = students.find(s => s.id === studentId);
+    return student ? `${student.firstName} ${student.lastName} (${student.studentId})` : 'Unknown';
+  };
+
+  const getCourseInfo = (courseId) => {
+    const course = courses.find(c => c.id === courseId);
+    return course ? `${course.code} - ${course.title}` : 'Unknown';
+  };
+
+  const getGradeBadge = (grade) => {
+    // Convert backend enum to display format
+    const gradeMap = {
+      'A_PLUS': 'A+', 'A': 'A', 'A_MINUS': 'A-',
+      'B_PLUS': 'B+', 'B': 'B', 'B_MINUS': 'B-',
+      'C_PLUS': 'C+', 'C': 'C', 'C_MINUS': 'C-',
+      'D_PLUS': 'D+', 'D': 'D', 'F': 'F'
+    };
+    
+    const displayGrade = gradeMap[grade] || grade;
+    
+    const variants = {
+      'A+': 'success', 'A': 'success', 'A-': 'success',
+      'B+': 'primary', 'B': 'primary', 'B-': 'primary',
+      'C+': 'warning', 'C': 'warning', 'C-': 'warning',
+      'D+': 'danger', 'D': 'danger', 'F': 'danger'
+    };
+    
+    return <Badge bg={variants[displayGrade] || 'secondary'}>{displayGrade}</Badge>;
+  };
+
+  if (loading) return <div className="loading">Loading results...</div>;
+
+  return (
+    <div>
+      <Row className="mb-4">
+        <Col>
+          <h2>Student Results & Grades</h2>
+        </Col>
+        <Col xs="auto">
+          <Button variant="primary" onClick={() => setShowModal(true)}>
+            Add Result
+          </Button>
+        </Col>
+      </Row>
+
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <Card className="mb-4">
+        <Card.Header>Filter Results</Card.Header>
+        <Card.Body>
+          <Row>
+            <Col md={4}>
+              <Form.Select
+                value={selectedStudent}
+                onChange={(e) => setSelectedStudent(e.target.value)}
+              >
+                <option value="">All Students</option>
+                {students.map(student => (
+                  <option key={student.id} value={student.id}>
+                    {student.studentId} - {student.firstName} {student.lastName}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={4}>
+              <Form.Select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+              >
+                <option value="">All Courses</option>
+                {courses.map(course => (
+                  <option key={course.id} value={course.id}>
+                    {course.code} - {course.title}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={2}>
+              <Button variant="outline-primary" onClick={handleFilter}>
+                Filter
+              </Button>
+            </Col>
+            <Col md={2}>
+              <Button variant="outline-secondary" onClick={fetchData}>
+                Reset
+              </Button>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
+
+      <Card>
+        <Card.Header>
+          <h5>Results ({results.length})</h5>
+        </Card.Header>
+        <Card.Body>
+          {results.length === 0 ? (
+            <p className="text-center">No results found.</p>
+          ) : (
+            <Table responsive striped hover>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Course</th>
+                  <th>Score</th>
+                  <th>Grade</th>
+                  <th>Exam Type</th>
+                  <th>Date</th>
+                  <th>Remarks</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map(result => (
+                  <tr key={result.id}>
+                    <td>{getStudentName(result.student?.id)}</td>
+                    <td>{getCourseInfo(result.course?.id)}</td>
+                    <td>
+                      <Badge bg={result.score >= 80 ? 'success' : result.score >= 60 ? 'warning' : 'danger'}>
+                        {result.score}%
+                      </Badge>
+                    </td>
+                    <td>{getGradeBadge(result.grade)}</td>
+                    <td>{result.examType}</td>
+                    <td>{new Date(result.examDate).toLocaleDateString()}</td>
+                    <td>{result.remarks || '-'}</td>
+                    <td>
+                      <Dropdown as={ButtonGroup}>
+                        <Dropdown.Toggle 
+                          variant="outline-secondary" 
+                          size="sm"
+                          id={`dropdown-${result.id}`}
+                        >
+                          Actions
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                          <Dropdown.Item onClick={() => handleUpdate(result)}>
+                            📝 Edit Result
+                          </Dropdown.Item>
+                          <Dropdown.Divider />
+                          <Dropdown.Item 
+                            onClick={() => handleDelete(result.id)}
+                            className="text-danger"
+                          >
+                            🗑️ Delete Result
+                          </Dropdown.Item>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Card.Body>
+      </Card>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Result</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Student</Form.Label>
+                  <Form.Select
+                    value={newResult.studentId}
+                    onChange={(e) => setNewResult({...newResult, studentId: e.target.value})}
+                  >
+                    <option value="">Select a student</option>
+                    {students.map(student => (
+                      <option key={student.id} value={student.id}>
+                        {student.studentId} - {student.firstName} {student.lastName}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Course</Form.Label>
+                  <Form.Select
+                    value={newResult.courseId}
+                    onChange={(e) => setNewResult({...newResult, courseId: e.target.value})}
+                  >
+                    <option value="">Select a course</option>
+                    {courses.map(course => (
+                      <option key={course.id} value={course.id}>
+                        {course.code} - {course.title}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Score (%)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={newResult.score}
+                    onChange={(e) => setNewResult({...newResult, score: e.target.value})}
+                    placeholder="Enter score"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Exam Type</Form.Label>
+                  <Form.Select
+                    value={newResult.examType}
+                    onChange={(e) => setNewResult({...newResult, examType: e.target.value})}
+                  >
+                    <option value="FINAL">Final Exam</option>
+                    <option value="MIDTERM">Midterm Exam</option>
+                    <option value="QUIZ">Quiz</option>
+                    <option value="ASSIGNMENT">Assignment</option>
+                    <option value="PROJECT">Project</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Grade</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={newResult.score ? getGradeFromScore(parseFloat(newResult.score)) : ''}
+                    disabled
+                    placeholder="Auto-calculated"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Remarks</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={newResult.remarks}
+                onChange={(e) => setNewResult({...newResult, remarks: e.target.value})}
+                placeholder="Optional remarks"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleCreateResult}>
+            Add Result
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showUpdateModal} onHide={() => setShowUpdateModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Update Result</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Score *</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={updateData.score}
+                onChange={(e) => setUpdateData({...updateData, score: e.target.value})}
+                placeholder="Enter score (0-100)"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Exam Type</Form.Label>
+              <Form.Select
+                value={updateData.examType}
+                onChange={(e) => setUpdateData({...updateData, examType: e.target.value})}
+              >
+                <option value="FINAL">Final Exam</option>
+                <option value="MIDTERM">Midterm Exam</option>
+                <option value="QUIZ">Quiz</option>
+                <option value="ASSIGNMENT">Assignment</option>
+                <option value="PROJECT">Project</option>
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Remarks</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={updateData.remarks}
+                onChange={(e) => setUpdateData({...updateData, remarks: e.target.value})}
+                placeholder="Optional remarks..."
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowUpdateModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleUpdateSubmit}>
+            Update Result
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+};
+
+const getGradeFromScore = (score) => {
+  if (score >= 85) return 'A+';
+  if (score >= 70) return 'A';
+  if (score >= 65) return 'A-';
+  if (score >= 60) return 'B+';
+  if (score >= 55) return 'B';
+  if (score >= 50) return 'B-';
+  if (score >= 45) return 'C+';
+  if (score >= 40) return 'C';
+  if (score >= 35) return 'C-';
+  if (score >= 30) return 'D+';
+  if (score >= 25) return 'D';
+  return 'F';
+};
+
+export default ResultsList;
