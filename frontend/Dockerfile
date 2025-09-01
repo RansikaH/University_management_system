@@ -2,8 +2,7 @@ FROM node:18-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
-COPY public ./public
-COPY src ./src
+COPY . .
 RUN npm run build
 
 FROM nginx:alpine
