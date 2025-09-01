@@ -22,11 +22,8 @@ WORKDIR /app
 # Copy backend jar
 COPY --from=backend-build /app/backend/target/*.jar app.jar
 
-# Copy frontend build to static resources
-COPY --from=frontend-build /app/frontend/build /app/static
-
 # Expose port
-EXPOSE $PORT
+EXPOSE 8080
 
 # Run the application
-ENTRYPOINT ["java", "-Dserver.port=$PORT", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Dserver.port=${PORT:-8080}", "-jar", "app.jar"]
