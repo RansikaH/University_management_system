@@ -4,8 +4,7 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "java -jar app.jar",
-    "healthcheckPath": "/actuator/health",
+    "startCommand": "java -Dserver.port=$PORT -jar app.jar",
     "healthcheckTimeout": 300
   }
 }

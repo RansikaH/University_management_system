@@ -26,7 +26,7 @@ COPY --from=backend-build /app/backend/target/*.jar app.jar
 COPY --from=frontend-build /app/frontend/build /app/static
 
 # Expose port
-EXPOSE 8080
+EXPOSE $PORT
 
 # Run the application
-ENTRYPOINT ["java", "-Dserver.port=${PORT:-8080}", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Dserver.port=$PORT", "-jar", "app.jar"]
