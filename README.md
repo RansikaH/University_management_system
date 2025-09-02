@@ -23,13 +23,28 @@ A modern enterprise-level web application built with Spring Boot and React.js fo
 
 ## 📋 Features
 
-- ✅ **Course Management**: Create, view, edit, and delete courses
-- ✅ **Student Management**: Manage student information and profiles
-- ✅ **Registration System**: Handle course enrollments and track progress
-- ✅ **Search Functionality**: Search courses and students
-- ✅ **Responsive Design**: Modern, mobile-friendly UI
-- ✅ **REST API**: RESTful web services with JSON
-- ✅ **Database Integration**: JPA/Hibernate with MySQL support
+### 🎯 **Core Management Features**
+- ✅ **Advanced Course Management**: Complete CRUD operations with search, filtering, and capacity tracking
+- ✅ **Comprehensive Student Management**: Full student profiles with contact information and academic history
+- ✅ **Smart Registration System**: Enrollment management with status tracking and conflict prevention
+- ✅ **Results & Grading System**: Complete grade management with multiple exam types and automatic calculations
+- ✅ **Student Transcript System**: Individual academic transcripts with GPA calculation and performance analytics
+- ✅ **Course Results Analysis**: Course performance dashboards with grade distribution and statistics
+
+### 🔧 **Technical Features**
+- ✅ **REST API**: 25+ RESTful endpoints with comprehensive CRUD operations
+- ✅ **Advanced Search**: Real-time search across courses, students, and results with filtering
+- ✅ **Database Integration**: JPA/Hibernate with MySQL and H2 support
+- ✅ **Data Validation**: Client and server-side validation with error handling
+- ✅ **Responsive Design**: Mobile-first Bootstrap design with modern UI components
+- ✅ **Real-time Updates**: Dynamic data fetching with loading states and auto-refresh
+
+### 📊 **Analytics & Reporting**
+- ✅ **Dashboard Analytics**: Real-time statistics and performance metrics
+- ✅ **GPA Calculation**: Automatic grade point average computation
+- ✅ **Grade Distribution**: Visual representation of course performance
+- ✅ **Performance Tracking**: Individual and course-level analytics
+- ✅ **Statistical Reports**: Comprehensive academic performance insights
 
 ## 🏗️ Project Structure
 
@@ -125,32 +140,46 @@ mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 
 ## 📊 API Endpoints
 
-### Courses
+### 📚 Course Management API
 - `GET /api/courses` - Get all courses
 - `GET /api/courses/{id}` - Get course by ID
 - `GET /api/courses/code/{code}` - Get course by code
-- `GET /api/courses/search?title={title}` - Search courses
+- `GET /api/courses/search?title={title}&instructor={instructor}` - Search courses
 - `GET /api/courses/available` - Get available courses
+- `GET /api/courses/test` - Backend connectivity test
 - `POST /api/courses` - Create new course
 - `PUT /api/courses/{id}` - Update course
 - `DELETE /api/courses/{id}` - Delete course
 
-### Students
+### 👥 Student Management API
 - `GET /api/students` - Get all students
 - `GET /api/students/{id}` - Get student by ID
 - `GET /api/students/student-id/{studentId}` - Get by student ID
-- `GET /api/students/search?name={name}` - Search students
+- `GET /api/students/search?name={name}` - Search students by name
 - `POST /api/students` - Create new student
 - `PUT /api/students/{id}` - Update student
 - `DELETE /api/students/{id}` - Delete student
 
-### Registrations
+### 📝 Registration Management API
 - `GET /api/registrations` - Get all registrations
-- `GET /api/registrations/student/{studentId}` - Get by student
-- `GET /api/registrations/course/{courseId}` - Get by course
-- `POST /api/registrations` - Create registration
-- `PUT /api/registrations/{id}` - Update registration
+- `GET /api/registrations/student/{studentId}` - Get registrations by student
+- `GET /api/registrations/course/{courseId}` - Get registrations by course
+- `POST /api/registrations` - Create new registration
+- `PUT /api/registrations/{id}` - Update registration (status, grade)
 - `DELETE /api/registrations/{id}` - Delete registration
+
+### 📊 Results & Grading API
+- `GET /api/results` - Get all results
+- `GET /api/results/{id}` - Get result by ID
+- `GET /api/results/student/{studentId}` - Get results by student
+- `GET /api/results/course/{courseId}` - Get results by course
+- `GET /api/results/student/{studentId}/course/{courseId}` - Get specific student-course results
+- `GET /api/results/student/{studentId}/gpa` - Calculate student GPA
+- `GET /api/results/student/{studentId}/average` - Get student average score
+- `GET /api/results/course/{courseId}/average` - Get course average score
+- `POST /api/results` - Create new result
+- `PUT /api/results/{id}` - Update result
+- `DELETE /api/results/{id}` - Delete result
 
 ## 🧪 Testing
 
@@ -178,14 +207,96 @@ curl -X POST http://localhost:8080/api/courses \
   -d '{"title":"Test Course","code":"TEST101","credits":3}'
 ```
 
-## 🎨 UI Features
+## 🎨 UI Features & Functionality
 
-- **Dashboard**: Overview with statistics
-- **Course Management**: Add, view, search, and delete courses
-- **Student Management**: Manage student profiles
-- **Registration System**: Enroll students in courses
-- **Responsive Design**: Works on desktop and mobile
-- **Modern UI**: Bootstrap-based design with cards and tables
+### 📊 **Interactive Dashboard**
+- **Real-time Statistics Cards**: Total courses, students, registrations, available courses, and results
+- **Dynamic Data Fetching**: Auto-refreshing statistics with loading states
+- **Welcome Information Panel**: System overview and feature highlights
+- **Color-coded Badges**: Visual indicators for different metrics
+
+### 📚 **Advanced Course Management**
+- **Complete CRUD Operations**: Create, read, update, delete courses
+- **Real-time Search**: Search courses by title with instant results
+- **Inline Editing**: Modal-based course updates with form validation
+- **Course Details**: Title, code, description, credits, instructor, max students
+- **Availability Tracking**: Monitor course capacity and enrollment limits
+- **Responsive Tables**: Sortable and filterable course listings
+- **Action Buttons**: Quick access to edit and delete functions
+
+### 👥 **Comprehensive Student Management**
+- **Student Profiles**: Full student information with unique IDs
+- **Advanced Search**: Search by name with auto-complete functionality
+- **Modal-based Updates**: In-place editing with validation
+- **Contact Information**: Email, phone, date of birth tracking
+- **Auto-refresh**: Window focus detection for data synchronization
+- **Bulk Operations**: Efficient student data management
+
+### 📝 **Registration & Enrollment System**
+- **Smart Registration**: Dropdown selection for students and courses
+- **Status Management**: Track enrollment status (Enrolled, Completed, Dropped, Pending)
+- **Grade Tracking**: Record and update student grades
+- **Registration History**: Complete enrollment timeline with dates
+- **Conflict Prevention**: Duplicate registration validation
+- **Capacity Management**: Automatic availability checking
+
+### 📊 **Results & Grading System**
+- **Comprehensive Grade Management**: Full CRUD operations for student results
+- **Multiple Exam Types**: Final, Midterm, Quiz, Assignment, Project
+- **Automatic Grade Calculation**: Score-to-grade conversion (A+ to F scale)
+- **Advanced Filtering**: Filter by student, course, or both
+- **Color-coded Scores**: Visual indicators for performance levels
+- **Detailed Remarks**: Additional comments and feedback
+- **Grade Distribution**: Statistical analysis of course performance
+
+### 📋 **Student Transcript System**
+- **Individual Transcripts**: Complete academic history per student
+- **GPA Calculation**: Automatic GPA computation with grade points
+- **Overall Statistics**: Average scores and total courses completed
+- **Course History**: Chronological listing of all completed courses
+- **Performance Analytics**: Visual grade representation with badges
+
+### 📈 **Course Results Analysis**
+- **Course Performance Dashboard**: Comprehensive course analytics
+- **Class Statistics**: Average scores and grade distribution
+- **Student Performance Tracking**: Individual results within courses
+- **Grade Distribution Charts**: Visual representation of class performance
+- **Instructor Analytics**: Course-specific performance metrics
+
+### 🎨 **Modern UI/UX Design**
+- **Responsive Bootstrap Design**: Mobile-first, works on all devices
+- **Interactive Components**: Modals, dropdowns, badges, alerts
+- **Color-coded Elements**: Intuitive visual feedback system
+- **Loading States**: Smooth user experience with loading indicators
+- **Error Handling**: User-friendly error messages and validation
+- **Navigation**: Clean, intuitive navigation with active states
+- **Card-based Layout**: Modern, organized information presentation
+- **Action Dropdowns**: Contextual actions with icons
+- **Form Validation**: Real-time input validation and feedback
+
+### 🔍 **Search & Filter Capabilities**
+- **Global Search**: Search across courses, students, and results
+- **Advanced Filters**: Multi-criteria filtering options
+- **Real-time Results**: Instant search with auto-complete
+- **Reset Functionality**: Quick return to full listings
+- **Cross-reference Search**: Filter results by multiple entities
+
+### 📱 **Responsive Features**
+- **Mobile Optimization**: Touch-friendly interface elements
+- **Tablet Support**: Optimized layouts for medium screens
+- **Desktop Enhancement**: Full-featured experience on large screens
+- **Cross-browser Compatibility**: Works on all modern browsers
+- **Accessibility**: Screen reader friendly and keyboard navigation
+
+### 🔧 **Advanced Technical Features**
+- **Connection Testing**: Built-in backend connectivity verification
+- **Auto-refresh**: Window focus detection for real-time data sync
+- **Modal Management**: Sophisticated popup forms with validation
+- **State Management**: Efficient React hooks for data handling
+- **API Integration**: Centralized service layer with error handling
+- **Grade Automation**: Automatic grade calculation from scores (A+ to F scale)
+- **Timestamp Tracking**: Creation and update timestamps for all entities
+- **Enum Management**: Structured data types for grades and exam types
 
 ## 🔧 Configuration
 
