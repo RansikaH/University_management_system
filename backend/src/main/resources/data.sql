@@ -1,3 +1,5 @@
+-- Sample users are now created by DataInitializer component with proper password encoding
+
 -- Sample data for testing
 INSERT INTO courses (title, code, description, credits, instructor, max_students) VALUES
 ('Introduction to Computer Science', 'CS101', 'Basic concepts of computer science and programming', 3, 'Dr. John Smith', 30);

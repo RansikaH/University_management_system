@@ -47,6 +47,10 @@ public class Student {
     @JsonIgnore
     private List<Registration> registrations;
     
+    @OneToOne(mappedBy = "student", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private User user;
+    
     // Constructors
     public Student() {
     }
@@ -150,6 +154,31 @@ public class Student {
     
     public void setRegistrations(List<Registration> registrations) {
         this.registrations = registrations;
+    }
+    
+    public User getUser() {
+        return user;
+    }
+    
+    public void setUser(User user) {
+        // Prevent endless loop
+        if (this.user == user) {
+            return;
+        }
+        
+        // Set new user
+        User oldUser = this.user;
+        this.user = user;
+        
+        // Remove from the old user, if any
+        if (oldUser != null) {
+            oldUser.setStudent(null);
+        }
+        
+        // Set self into new user, if any
+        if (user != null) {
+            user.setStudent(this);
+        }
     }
     
     public String getFullName() {

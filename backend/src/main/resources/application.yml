@@ -42,3 +42,8 @@ server:
 logging:
   level:
     com.university: DEBUG
+
+# JWT Configuration
+jwt:
+  secret: mySecretKeyForUniversityManagementSystemJWT2024
+  expiration: 86400000  # 24 hours in milliseconds

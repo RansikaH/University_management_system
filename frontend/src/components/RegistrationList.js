@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Card, Form, Row, Col, Badge, Alert, Modal } from 'react-bootstrap';
-import { registrationAPI, studentAPI, courseAPI } from '../services/api';
+import { registrationAPI, studentAPI, courseAPI, authAPI } from '../services/api';
 
 const RegistrationList = () => {
   const [registrations, setRegistrations] = useState([]);
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentStudent, setCurrentStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -20,15 +22,39 @@ const RegistrationList = () => {
 
   const fetchData = async () => {
     try {
-      const [regRes, studRes, courseRes] = await Promise.all([
-        registrationAPI.getAll(),
-        studentAPI.getAll(),
-        courseAPI.getAll()
-      ]);
+      // Get current user first
+      const userRes = await authAPI.getCurrentUser();
+      setCurrentUser(userRes.data);
       
-      setRegistrations(regRes.data);
-      setStudents(studRes.data);
-      setCourses(courseRes.data);
+      // If user is a student, get their specific data
+      if (userRes.data.role === 'STUDENT') {
+        const [regRes, courseRes] = await Promise.all([
+          registrationAPI.getMyRegistrations(),
+          courseAPI.getAll()
+        ]);
+        
+        setRegistrations(regRes.data);
+        setCourses(courseRes.data);
+        
+        // Try to get current user's student data
+        try {
+          const studentRes = await authAPI.getCurrentUserStudent();
+          setCurrentStudent(studentRes.data);
+        } catch (err) {
+          console.log('No student data found for user');
+        }
+      } else {
+        // For admin/instructor/registrar, get all data
+        const [regRes, studRes, courseRes] = await Promise.all([
+          registrationAPI.getAll(),
+          studentAPI.getAll(),
+          courseAPI.getAll()
+        ]);
+        
+        setRegistrations(regRes.data);
+        setStudents(studRes.data);
+        setCourses(courseRes.data);
+      }
     } catch (error) {
       setError('Failed to fetch data');
       console.error('Error fetching data:', error);
@@ -38,16 +64,22 @@ const RegistrationList = () => {
   };
 
   const handleCreateRegistration = async () => {
-    if (!newRegistration.studentId || !newRegistration.courseId) {
-      setError('Please select both student and course');
+    if (!newRegistration.courseId) {
+      setError('Please select a course');
       return;
     }
     
     try {
       const registrationData = {
-        studentId: parseInt(newRegistration.studentId),
+        studentId: currentUser.role === 'STUDENT' ? currentStudent?.id : parseInt(newRegistration.studentId),
         courseId: parseInt(newRegistration.courseId)
       };
+      
+      if (!registrationData.studentId) {
+        setError('Student information not found');
+        return;
+      }
+      
       await registrationAPI.create(registrationData);
       setShowModal(false);
       setNewRegistration({ studentId: '', courseId: '' });
@@ -90,14 +122,43 @@ const RegistrationList = () => {
     }
   };
 
-  const getStudentName = (studentId) => {
-    const student = students.find(s => s.id === studentId);
-    return student ? `${student.firstName} ${student.lastName}` : 'Unknown';
+  const getStudentName = (student) => {
+    if (!student) return 'Unknown';
+    
+    // If student object has firstName and lastName directly
+    if (student.firstName && student.lastName) {
+      return `${student.firstName} ${student.lastName}`;
+    }
+    
+    // If student has a user object with name properties
+    if (student.user) {
+      return `${student.user.firstName} ${student.user.lastName}`;
+    }
+    
+    // Fallback to student ID if name not found
+    return student.studentId || 'Unknown';
   };
 
-  const getCourseInfo = (courseId) => {
-    const course = courses.find(c => c.id === courseId);
-    return course ? `${course.code} - ${course.title}` : 'Unknown';
+  const getCourseInfo = (course) => {
+    if (!course) return 'Unknown';
+    
+    // If course has both code and title
+    if (course.code && course.title) {
+      return `${course.code} - ${course.title}`;
+    }
+    
+    // If we only have a course ID, try to find it in the courses list
+    if (typeof course === 'number' || (typeof course === 'string' && course.match(/^\d+$/))) {
+      const foundCourse = courses.find(c => c.id === parseInt(course));
+      if (foundCourse) {
+        return foundCourse.code && foundCourse.title 
+          ? `${foundCourse.code} - ${foundCourse.title}` 
+          : `Course ID: ${course}`;
+      }
+    }
+    
+    // Fallback to course ID or 'Unknown'
+    return course.id ? `Course ID: ${course.id}` : 'Unknown';
   };
 
   const getStatusBadge = (status) => {
@@ -149,8 +210,8 @@ const RegistrationList = () => {
               <tbody>
                 {registrations.map(registration => (
                   <tr key={registration.id}>
-                    <td>{getStudentName(registration.student?.id)}</td>
-                    <td>{getCourseInfo(registration.course?.id)}</td>
+                    <td>{getStudentName(registration.student)}</td>
+                    <td>{getCourseInfo(registration.course)}</td>
                     <td>{getStatusBadge(registration.status)}</td>
                     <td>{registration.grade || '-'}</td>
                     <td>{new Date(registration.registrationDate).toLocaleDateString()}</td>
@@ -185,20 +246,22 @@ const RegistrationList = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Student</Form.Label>
-              <Form.Select
-                value={newRegistration.studentId}
-                onChange={(e) => setNewRegistration({...newRegistration, studentId: e.target.value})}
-              >
-                <option value="">Select a student</option>
-                {students.map(student => (
-                  <option key={student.id} value={student.id}>
-                    {student.studentId} - {student.firstName} {student.lastName}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+            {currentUser?.role !== 'STUDENT' && (
+              <Form.Group className="mb-3">
+                <Form.Label>Student</Form.Label>
+                <Form.Select
+                  value={newRegistration.studentId}
+                  onChange={(e) => setNewRegistration({...newRegistration, studentId: e.target.value})}
+                >
+                  <option value="">Select a student</option>
+                  {students.map(student => (
+                    <option key={student.id} value={student.id}>
+                      {student.studentId} - {student.firstName} {student.lastName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            )}
             <Form.Group className="mb-3">
               <Form.Label>Course</Form.Label>
               <Form.Select

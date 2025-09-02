@@ -3,9 +3,11 @@ package com.university.coursemanagement.controller;
 import com.university.coursemanagement.entity.Registration;
 import com.university.coursemanagement.entity.Course;
 import com.university.coursemanagement.entity.Student;
+import com.university.coursemanagement.entity.User;
 import com.university.coursemanagement.repository.RegistrationRepository;
 import com.university.coursemanagement.repository.CourseRepository;
 import com.university.coursemanagement.repository.StudentRepository;
+import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,6 +39,18 @@ public class RegistrationController {
     @GetMapping("/student/{studentId}")
     public List<Registration> getRegistrationsByStudent(@PathVariable Long studentId) {
         return registrationRepository.findByStudentId(studentId);
+    }
+    
+    @GetMapping("/my-registrations")
+    public ResponseEntity<List<Registration>> getCurrentUserRegistrations(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            User user = (User) authentication.getPrincipal();
+            if (user.getStudent() != null) {
+                List<Registration> registrations = registrationRepository.findByStudentId(user.getStudent().getId());
+                return ResponseEntity.ok(registrations);
+            }
+        }
+        return ResponseEntity.notFound().build();
     }
     
     @GetMapping("/course/{courseId}")

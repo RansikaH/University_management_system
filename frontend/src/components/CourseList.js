@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Card, Form, Row, Col, Badge, Alert, Modal } from 'react-bootstrap';
-import { courseAPI } from '../services/api';
+import { courseAPI, tokenService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import StudentCourseEnrollment from './StudentCourseEnrollment';
 
 const CourseList = () => {
   const [courses, setCourses] = useState([]);
@@ -19,10 +20,7 @@ const CourseList = () => {
     maxStudents: ''
   });
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchCourses();
-  }, []);
+  const user = tokenService.getUser();
 
   const fetchCourses = async () => {
     try {
@@ -39,6 +37,15 @@ const CourseList = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  // If user is a student, show the student enrollment interface
+  if (user && user.role === 'STUDENT') {
+    return <StudentCourseEnrollment />;
+  }
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {

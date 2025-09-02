@@ -3,9 +3,11 @@ package com.university.coursemanagement.controller;
 import com.university.coursemanagement.entity.Result;
 import com.university.coursemanagement.entity.Course;
 import com.university.coursemanagement.entity.Student;
+import com.university.coursemanagement.entity.User;
 import com.university.coursemanagement.repository.ResultRepository;
 import com.university.coursemanagement.repository.CourseRepository;
 import com.university.coursemanagement.repository.StudentRepository;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -65,6 +67,42 @@ public class ResultController {
     public ResponseEntity<Double> getStudentAverage(@PathVariable Long studentId) {
         Double average = resultRepository.calculateOverallAverageByStudent(studentId);
         return ResponseEntity.ok(average != null ? average : 0.0);
+    }
+    
+    @GetMapping("/my-results")
+    public ResponseEntity<List<Result>> getCurrentUserResults(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            User user = (User) authentication.getPrincipal();
+            if (user.getStudent() != null) {
+                List<Result> results = resultRepository.findByStudentId(user.getStudent().getId());
+                return ResponseEntity.ok(results);
+            }
+        }
+        return ResponseEntity.notFound().build();
+    }
+    
+    @GetMapping("/my-gpa")
+    public ResponseEntity<Double> getCurrentUserGPA(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            User user = (User) authentication.getPrincipal();
+            if (user.getStudent() != null) {
+                Double gpa = resultRepository.calculateGPAByStudent(user.getStudent().getId());
+                return ResponseEntity.ok(gpa != null ? gpa : 0.0);
+            }
+        }
+        return ResponseEntity.notFound().build();
+    }
+    
+    @GetMapping("/my-average")
+    public ResponseEntity<Double> getCurrentUserAverage(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            User user = (User) authentication.getPrincipal();
+            if (user.getStudent() != null) {
+                Double average = resultRepository.calculateOverallAverageByStudent(user.getStudent().getId());
+                return ResponseEntity.ok(average != null ? average : 0.0);
+            }
+        }
+        return ResponseEntity.notFound().build();
     }
     
     @GetMapping("/course/{courseId}/average")

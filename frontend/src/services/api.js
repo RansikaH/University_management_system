@@ -11,6 +11,50 @@ const api = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
+// Token management
+const TOKEN_KEY = 'jwt_token';
+const USER_KEY = 'user_info';
+
+export const tokenService = {
+  getToken: () => localStorage.getItem(TOKEN_KEY),
+  setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
+  removeToken: () => localStorage.removeItem(TOKEN_KEY),
+  getUser: () => {
+    const user = localStorage.getItem(USER_KEY);
+    return user ? JSON.parse(user) : null;
+  },
+  setUser: (user) => localStorage.setItem(USER_KEY, JSON.stringify(user)),
+  removeUser: () => localStorage.removeItem(USER_KEY),
+  clearAuth: () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  }
+};
+
+// Request interceptor to add token
+api.interceptors.request.use(
+  (config) => {
+    const token = tokenService.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      tokenService.clearAuth();
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Course API
 export const courseAPI = {
   getAll: () => api.get('/courses'),
@@ -39,7 +83,25 @@ export const registrationAPI = {
   getAll: () => api.get('/registrations'),
   getByStudent: (studentId) => api.get(`/registrations/student/${studentId}`),
   getByCourse: (courseId) => api.get(`/registrations/course/${courseId}`),
-  create: (registration) => api.post('/registrations', registration),
+  getMyRegistrations: () => api.get('/registrations/my-registrations'),
+  create: async (registration) => {
+    try {
+      console.log('Creating registration with data:', registration);
+      const response = await api.post('/registrations', registration);
+      console.log('Registration created successfully:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Error creating registration:', error.response?.data || error.message);
+      if (error.response?.status === 409) {
+        throw new Error('You are already enrolled in this course');
+      } else if (error.response?.status === 400) {
+        throw new Error('Invalid registration data');
+      } else if (error.response?.status === 404) {
+        throw new Error('Course or student not found');
+      }
+      throw error;
+    }
+  },
   update: (id, registration) => api.put(`/registrations/${id}`, registration),
   delete: (id) => api.delete(`/registrations/${id}`),
 };
@@ -54,9 +116,35 @@ export const resultAPI = {
   getStudentGPA: (studentId) => api.get(`/results/student/${studentId}/gpa`),
   getStudentAverage: (studentId) => api.get(`/results/student/${studentId}/average`),
   getCourseAverage: (courseId) => api.get(`/results/course/${courseId}/average`),
+  getMyResults: () => api.get('/results/my-results'),
+  getMyGPA: () => api.get('/results/my-gpa'),
+  getMyAverage: () => api.get('/results/my-average'),
   create: (result) => api.post('/results', result),
   update: (id, result) => api.put(`/results/${id}`, result),
   delete: (id) => api.delete(`/results/${id}`),
+};
+
+// Authentication API
+export const authAPI = {
+  login: (credentials) => api.post('/auth/login', credentials),
+  register: (userData) => api.post('/auth/register', userData),
+  registerStudent: (studentData) => api.post('/auth/register/student', studentData),
+  logout: () => api.post('/auth/logout'),
+  getCurrentUser: () => api.get('/auth/me'),
+  getCurrentUserStudent: () => api.get('/auth/current/student'),
+  getRoles: () => api.get('/auth/roles'),
+};
+
+// User Management API (Admin only)
+export const userAPI = {
+  getAll: () => api.get('/users'),
+  getById: (id) => api.get(`/users/${id}`),
+  getByRole: (role) => api.get(`/users/role/${role}`),
+  search: (name) => api.get('/users/search', { params: { name } }),
+  getStats: () => api.get('/users/stats'),
+  update: (id, user) => api.put(`/users/${id}`, user),
+  toggleStatus: (id) => api.put(`/users/${id}/toggle-status`),
+  delete: (id) => api.delete(`/users/${id}`),
 };
 
 export default api;
