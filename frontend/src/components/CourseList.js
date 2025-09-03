@@ -21,6 +21,10 @@ const CourseList = () => {
   });
   const navigate = useNavigate();
   const user = tokenService.getUser();
+  
+  // Role-based access control
+  const userRole = user?.role;
+  const canManageCourses = userRole === 'ADMIN' || userRole === 'INSTRUCTOR';
 
   const fetchCourses = async () => {
     try {
@@ -115,11 +119,13 @@ const CourseList = () => {
         <Col>
           <h2>Course Management</h2>
         </Col>
-        <Col xs="auto">
-          <Button variant="primary" onClick={() => navigate('/add-course')}>
-            Add New Course
-          </Button>
-        </Col>
+        {canManageCourses && (
+          <Col xs="auto">
+            <Button variant="primary" onClick={() => navigate('/add-course')}>
+              Add New Course
+            </Button>
+          </Col>
+        )}
       </Row>
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -166,7 +172,7 @@ const CourseList = () => {
                   <th>Credits</th>
                   <th>Instructor</th>
                   <th>Max Students</th>
-                  <th>Actions</th>
+                  {canManageCourses && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -179,23 +185,25 @@ const CourseList = () => {
                     <td>{course.credits}</td>
                     <td>{course.instructor}</td>
                     <td>{course.maxStudents || 'Unlimited'}</td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleUpdate(course)}
-                      >
-                        Update
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleDelete(course.id)}
-                      >
-                        Delete
-                      </Button>
-                    </td>
+                    {canManageCourses && (
+                      <td>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="me-2"
+                          onClick={() => handleUpdate(course)}
+                        >
+                          Update
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(course.id)}
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

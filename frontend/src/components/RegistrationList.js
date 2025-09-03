@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Card, Form, Row, Col, Badge, Alert, Modal } from 'react-bootstrap';
-import { registrationAPI, studentAPI, courseAPI, authAPI } from '../services/api';
+import { registrationAPI, studentAPI, courseAPI, authAPI, tokenService } from '../services/api';
 
 const RegistrationList = () => {
   const [registrations, setRegistrations] = useState([]);
@@ -15,6 +15,11 @@ const RegistrationList = () => {
   const [selectedRegistration, setSelectedRegistration] = useState(null);
   const [newRegistration, setNewRegistration] = useState({ studentId: '', courseId: '' });
   const [updateData, setUpdateData] = useState({ status: '', grade: '' });
+
+  // Get current user role for access control
+  const user = tokenService.getUser();
+  const userRole = user?.role;
+  const canManageRegistrations = userRole === 'ADMIN' || userRole === 'REGISTRAR';
 
   useEffect(() => {
     fetchData();
@@ -179,11 +184,13 @@ const RegistrationList = () => {
         <Col>
           <h2>Registration Management</h2>
         </Col>
-        <Col xs="auto">
-          <Button variant="primary" onClick={() => setShowModal(true)}>
-            New Registration
-          </Button>
-        </Col>
+        {canManageRegistrations && (
+          <Col xs="auto">
+            <Button variant="primary" onClick={() => setShowModal(true)}>
+              New Registration
+            </Button>
+          </Col>
+        )}
       </Row>
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -202,9 +209,8 @@ const RegistrationList = () => {
                   <th>Student</th>
                   <th>Course</th>
                   <th>Status</th>
-                  <th>Grade</th>
                   <th>Registration Date</th>
-                  <th>Actions</th>
+                  {canManageRegistrations && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -213,25 +219,26 @@ const RegistrationList = () => {
                     <td>{getStudentName(registration.student)}</td>
                     <td>{getCourseInfo(registration.course)}</td>
                     <td>{getStatusBadge(registration.status)}</td>
-                    <td>{registration.grade || '-'}</td>
                     <td>{new Date(registration.registrationDate).toLocaleDateString()}</td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleUpdate(registration)}
-                      >
-                        Update
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleDelete(registration.id)}
-                      >
-                        Delete
-                      </Button>
-                    </td>
+                    {canManageRegistrations && (
+                      <td>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="me-2"
+                          onClick={() => handleUpdate(registration)}
+                        >
+                          Update
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(registration.id)}
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

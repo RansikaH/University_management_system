@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Card, Form, Row, Col, Badge, Alert, Modal } from 'react-bootstrap';
-import { studentAPI } from '../services/api';
+import { studentAPI, tokenService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const StudentList = () => {
@@ -19,6 +19,12 @@ const StudentList = () => {
     dateOfBirth: ''
   });
   const navigate = useNavigate();
+  
+  // Get current user role
+  const currentUser = tokenService.getUser();
+  const userRole = currentUser?.role;
+  const isInstructor = userRole === 'INSTRUCTOR';
+  const canManageStudents = userRole === 'ADMIN' || userRole === 'REGISTRAR';
 
   useEffect(() => {
     fetchStudents();
@@ -115,11 +121,13 @@ const StudentList = () => {
         <Col>
           <h2>Student Management</h2>
         </Col>
-        <Col xs="auto">
-          <Button variant="primary" onClick={() => navigate('/add-student')}>
-            Add New Student
-          </Button>
-        </Col>
+        {canManageStudents && (
+          <Col xs="auto">
+            <Button variant="primary" onClick={() => navigate('/add-student')}>
+              Add New Student
+            </Button>
+          </Col>
+        )}
       </Row>
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -166,7 +174,7 @@ const StudentList = () => {
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Date of Birth</th>
-                  <th>Actions</th>
+                  {canManageStudents && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -179,23 +187,25 @@ const StudentList = () => {
                     <td>{student.email}</td>
                     <td>{student.phone}</td>
                     <td>{student.dateOfBirth}</td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleUpdate(student)}
-                      >
-                        Update
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleDelete(student.id)}
-                      >
-                        Delete
-                      </Button>
-                    </td>
+                    {canManageStudents && (
+                      <td>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="me-2"
+                          onClick={() => handleUpdate(student)}
+                        >
+                          Update
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(student.id)}
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
