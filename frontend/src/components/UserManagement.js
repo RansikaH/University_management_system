@@ -17,10 +17,16 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
+      console.log('Fetching users...');
       const response = await userAPI.getAll();
+      console.log('Users response:', response);
+      console.log('Users data:', response.data);
       setUsers(response.data);
+      setError('');
     } catch (err) {
-      setError('Failed to fetch users');
+      console.error('Error fetching users:', err);
+      console.error('Error response:', err.response);
+      setError(`Failed to fetch users: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }

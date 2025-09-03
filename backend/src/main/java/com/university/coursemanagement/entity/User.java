@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Size;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -27,6 +29,7 @@ public class User implements UserDetails {
     
     @NotBlank
     @Size(min = 6, max = 100)
+    @JsonIgnore
     private String password;
     
     @NotBlank
@@ -48,6 +51,7 @@ public class User implements UserDetails {
     
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id")
+    @JsonIgnore
     private Student student;
     
     @Column(nullable = false)
@@ -63,9 +67,11 @@ public class User implements UserDetails {
     private boolean credentialsNonExpired = true;
     
     @Column(name = "created_at")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
     
     @Column(name = "updated_at")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
     
     // Constructors
@@ -84,11 +90,13 @@ public class User implements UserDetails {
     
     // UserDetails implementation
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
     
     @Override
+    @JsonIgnore
     public String getPassword() {
         return password;
     }
@@ -99,16 +107,19 @@ public class User implements UserDetails {
     }
     
     @Override
+    @JsonIgnore
     public boolean isAccountNonExpired() {
         return accountNonExpired;
     }
     
     @Override
+    @JsonIgnore
     public boolean isAccountNonLocked() {
         return accountNonLocked;
     }
     
     @Override
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
         return credentialsNonExpired;
     }

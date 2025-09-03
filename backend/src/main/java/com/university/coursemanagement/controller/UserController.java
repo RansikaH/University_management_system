@@ -1,5 +1,6 @@
 package com.university.coursemanagement.controller;
 
+import com.university.coursemanagement.dto.UserDTO;
 import com.university.coursemanagement.entity.Role;
 import com.university.coursemanagement.entity.User;
 import com.university.coursemanagement.service.UserService;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,8 +23,12 @@ public class UserController {
     
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        List<UserDTO> userDTOs = users.stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDTOs);
     }
     
     @GetMapping("/{id}")
