@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>University Management System API Test</h1>
+    
+    <div>
+        <h2>Login Test</h2>
+        <button onclick="testLogin()">Test Student Login (S001)</button>
+        <button onclick="testMyResults()">Test My Results API</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div>
+        <h2>Results</h2>
+        <div id="resultsOutput"></div>
+    </div>
+
+    <script>
+        let authToken = '';
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'S001',  // Alice Johnson's student ID
+                        password: 'password'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (data.token) {
+                    authToken = data.token;
+                    document.getElementById('loginResult').innerHTML = 
+                        `<p style="color: green;">Login successful! User: ${data.user.firstName} ${data.user.lastName} (${data.user.role})</p>`;
+                } else {
+                    document.getElementById('loginResult').innerHTML = 
+                        `<p style="color: red;">Login failed: ${data.message || 'Unknown error'}</p>`;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('loginResult').innerHTML = 
+                    `<p style="color: red;">Login error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testMyResults() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/results/my-results', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('My results response:', data);
+                
+                document.getElementById('resultsOutput').innerHTML = 
+                    `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                console.error('Results error:', error);
+                document.getElementById('resultsOutput').innerHTML = 
+                    `<p style="color: red;">Results error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

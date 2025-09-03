@@ -67,7 +67,7 @@ const NavigationBar = ({ onLogout }) => {
               </LinkContainer>
             )}
             
-            {canAccess(['ADMIN', 'INSTRUCTOR', 'REGISTRAR', 'STUDENT']) && (
+            {canAccess(['ADMIN', 'INSTRUCTOR', 'REGISTRAR']) && (
               <LinkContainer to="/registrations">
                 <Nav.Link>Registrations</Nav.Link>
               </LinkContainer>

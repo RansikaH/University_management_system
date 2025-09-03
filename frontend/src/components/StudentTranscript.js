@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Badge, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 import { resultAPI, studentAPI } from '../services/api';
+import { tokenService } from '../services/api';
 
 const StudentTranscript = () => {
   const [students, setStudents] = useState([]);
@@ -9,8 +10,18 @@ const StudentTranscript = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Get current user info
+  const currentUser = tokenService.getUser();
+  const isStudent = currentUser?.role === 'STUDENT';
+
   useEffect(() => {
-    fetchStudents();
+    if (isStudent) {
+      // For students, automatically load their own transcript
+      fetchMyTranscript();
+    } else {
+      // For admin/instructor, load students list for selection
+      fetchStudents();
+    }
   }, []);
 
   const fetchStudents = async () => {
@@ -19,6 +30,35 @@ const StudentTranscript = () => {
       setStudents(response.data);
     } catch (error) {
       setError('Failed to fetch students');
+    }
+  };
+
+  const fetchMyTranscript = async () => {
+    setLoading(true);
+    try {
+      const [resultsRes, gpaRes, avgRes] = await Promise.all([
+        resultAPI.getMyResults(),
+        resultAPI.getMyGPA(),
+        resultAPI.getMyAverage()
+      ]);
+
+      // For students, we need to get the student info from the current user
+      setTranscript({
+        student: {
+          studentId: currentUser.username, // Username is the student ID
+          firstName: currentUser.firstName,
+          lastName: currentUser.lastName,
+          email: currentUser.email
+        },
+        results: resultsRes.data,
+        gpa: gpaRes.data,
+        average: avgRes.data
+      });
+    } catch (error) {
+      console.error('Error fetching my transcript:', error);
+      setError('Failed to fetch transcript');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,39 +111,41 @@ const StudentTranscript = () => {
 
   return (
     <div>
-      <h2>Student Transcript</h2>
+      <h2>{isStudent ? 'My Academic Transcript' : 'Student Transcript'}</h2>
       
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <Card className="mb-4">
-        <Card.Header>Select Student</Card.Header>
-        <Card.Body>
-          <Row>
-            <Col md={8}>
-              <Form.Select
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-              >
-                <option value="">Choose a student...</option>
-                {students.map(student => (
-                  <option key={student.id} value={student.id}>
-                    {student.studentId} - {student.firstName} {student.lastName}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-            <Col md={4}>
-              <Button 
-                variant="primary" 
-                onClick={fetchTranscript}
-                disabled={!selectedStudent || loading}
-              >
-                {loading ? 'Loading...' : 'View Transcript'}
-              </Button>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+      {!isStudent && (
+        <Card className="mb-4">
+          <Card.Header>Select Student</Card.Header>
+          <Card.Body>
+            <Row>
+              <Col md={8}>
+                <Form.Select
+                  value={selectedStudent}
+                  onChange={(e) => setSelectedStudent(e.target.value)}
+                >
+                  <option value="">Choose a student...</option>
+                  {students.map(student => (
+                    <option key={student.id} value={student.id}>
+                      {student.studentId} - {student.firstName} {student.lastName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col md={4}>
+                <Button 
+                  variant="primary" 
+                  onClick={fetchTranscript}
+                  disabled={!selectedStudent || loading}
+                >
+                  {loading ? 'Loading...' : 'View Transcript'}
+                </Button>
+              </Col>
+            </Row>
+          </Card.Body>
+        </Card>
+      )}
 
       {transcript && (
         <>

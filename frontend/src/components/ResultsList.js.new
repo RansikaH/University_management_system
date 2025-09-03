@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Card, Form, Row, Col, Badge, Alert, Modal, Dropdown, ButtonGroup } from 'react-bootstrap';
-import { resultAPI, studentAPI, courseAPI, tokenService } from '../services/api';
+import { resultAPI, studentAPI, courseAPI, authAPI, tokenService } from '../services/api';
 
 const ResultsList = () => {
   const [results, setResults] = useState([]);
@@ -13,25 +13,24 @@ const ResultsList = () => {
   const [selectedResult, setSelectedResult] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
+  
+  const currentUser = tokenService.getUser();
+  const isStudent = currentUser?.roles?.includes('ROLE_STUDENT');
+  const isAdmin = currentUser?.roles?.includes('ROLE_ADMIN');
+
   const [newResult, setNewResult] = useState({
-    studentId: '',
+    studentId: isStudent ? currentUser.id : '',
     courseId: '',
     score: '',
     examType: 'FINAL',
     remarks: ''
   });
+
   const [updateData, setUpdateData] = useState({
     score: '',
     examType: 'FINAL',
     remarks: ''
   });
-
-  // Get current user info
-  const currentUser = tokenService.getUser();
-  console.log('Current user:', currentUser);
-  const isStudent = currentUser?.role === 'STUDENT';
-  const canAddResults = currentUser?.role === 'ADMIN' || currentUser?.role === 'INSTRUCTOR';
-  console.log('Is student:', isStudent, 'Can add results:', canAddResults);
 
   useEffect(() => {
     fetchData();
@@ -40,41 +39,32 @@ const ResultsList = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      setError('');
       
-      console.log('Fetching data for user role:', isStudent ? 'STUDENT' : 'ADMIN/INSTRUCTOR');
-      console.log('User details:', currentUser);
-      
-      let response;
       if (isStudent) {
-        // For students, get only their own results
-        console.log('Calling getMyResults API...');
-        response = await resultAPI.getMyResults();
-        console.log('getMyResults response:', response);
+        // For students, fetch only their results
+        const [resultsRes, studentData] = await Promise.all([
+          resultAPI.getMyResults(),
+          authAPI.getCurrentUserStudent()
+        ]);
+        
+        setResults(resultsRes.data);
+        setStudents([studentData.data]);
+        setCourses((await courseAPI.getAll()).data);
       } else {
-        // For admin/instructor, get all results
-        console.log('Calling getAll API...');
-        response = await resultAPI.getAll();
-        console.log('getAll response:', response);
-      }
-      
-      console.log('Results data:', response.data);
-      console.log('Number of results:', response.data?.length || 0);
-      setResults(response.data || []);
-      
-      // Fetch courses for filtering
-      const coursesResponse = await courseAPI.getAll();
-      setCourses(coursesResponse.data);
-      
-      // Fetch students for filtering (only for non-students)
-      if (!isStudent) {
-        const studentsResponse = await studentAPI.getAll();
-        setStudents(studentsResponse.data);
+        // For admins/instructors, fetch all data
+        const [resultsRes, studentsRes, coursesRes] = await Promise.all([
+          resultAPI.getAll(),
+          studentAPI.getAll(),
+          courseAPI.getAll()
+        ]);
+        
+        setResults(resultsRes.data);
+        setStudents(studentsRes.data);
+        setCourses(coursesRes.data);
       }
     } catch (error) {
+      setError('Failed to fetch data');
       console.error('Error fetching data:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      setError(`Failed to fetch data: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -85,22 +75,14 @@ const ResultsList = () => {
       setLoading(true);
       setError('');
       
-      let response;
-      if (isStudent) {
-        // For students, always get their own results
-        response = await resultAPI.getMyResults();
-      } else {
-        // For admin/instructor, get all results
-        response = await resultAPI.getAll();
-      }
-      
+      // First, fetch all results
+      const response = await resultAPI.getAll();
       let filteredResults = response.data;
       
-      // Client-side filtering to handle both nested and non-nested data
-      if (!isStudent && selectedStudent) {
+      // Client-side filtering
+      if (selectedStudent) {
         filteredResults = filteredResults.filter(result => {
           const student = result.student;
-          // Handle both nested student object and direct student ID
           const studentId = student?.id || (typeof student === 'number' ? student : null);
           return studentId === parseInt(selectedStudent);
         });
@@ -109,7 +91,6 @@ const ResultsList = () => {
       if (selectedCourse) {
         filteredResults = filteredResults.filter(result => {
           const course = result.course;
-          // Handle both nested course object and direct course ID
           const courseId = course?.id || (typeof course === 'number' ? course : null);
           return courseId === parseInt(selectedCourse);
         });
@@ -128,7 +109,7 @@ const ResultsList = () => {
     setSelectedStudent('');
     setSelectedCourse('');
     setError('');
-    await fetchData(); // This will reload all results
+    await fetchData();
   };
 
   const handleCreateResult = async () => {
@@ -140,10 +121,15 @@ const ResultsList = () => {
         courseId: parseInt(newResult.courseId)
       });
       setShowModal(false);
-      setNewResult({ studentId: '', courseId: '', score: '', examType: 'FINAL', remarks: '' });
+      setNewResult({ 
+        ...newResult,
+        courseId: '',
+        score: '',
+        remarks: '' 
+      });
       fetchData();
     } catch (error) {
-      setError('Failed to create result');
+      setError('Failed to create result: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -175,11 +161,10 @@ const ResultsList = () => {
     }
 
     try {
-      const resultData = {
+      await resultAPI.update(selectedResult.id, {
         ...updateData,
         score: parseFloat(updateData.score)
-      };
-      await resultAPI.update(selectedResult.id, resultData);
+      });
       setShowUpdateModal(false);
       setSelectedResult(null);
       setError('');
@@ -191,28 +176,23 @@ const ResultsList = () => {
 
   const getStudentName = (student) => {
     if (!student) return 'Unknown';
-    // Handle both nested student object and direct student ID
     if (typeof student === 'object') {
       return `${student.firstName} ${student.lastName} (${student.studentId || 'N/A'})`;
     }
-    // Fallback to finding student by ID if only ID is provided
     const studentObj = students.find(s => s.id === student);
     return studentObj ? `${studentObj.firstName} ${studentObj.lastName} (${studentObj.studentId || 'N/A'})` : 'Unknown';
   };
 
   const getCourseInfo = (course) => {
     if (!course) return 'Unknown';
-    // Handle both nested course object and direct course ID
     if (typeof course === 'object') {
       return `${course.code || 'N/A'} - ${course.title || 'Unknown Course'}`;
     }
-    // Fallback to finding course by ID if only ID is provided
     const courseObj = courses.find(c => c.id === course);
     return courseObj ? `${courseObj.code} - ${courseObj.title}` : 'Unknown';
   };
 
   const getGradeBadge = (grade) => {
-    // Convert backend enum to display format
     const gradeMap = {
       'A_PLUS': 'A+', 'A': 'A', 'A_MINUS': 'A-',
       'B_PLUS': 'B+', 'B': 'B', 'B_MINUS': 'B-',
@@ -233,97 +213,75 @@ const ResultsList = () => {
   };
 
   if (loading) return <div className="loading">Loading results...</div>;
+  if (error) return <Alert variant="danger">{error}</Alert>;
+  if (isStudent && results.length === 0) return <Alert variant="info">No results found for your account.</Alert>;
 
   return (
-    <div>
+    <div className="container-fluid py-4">
       <Row className="mb-4">
         <Col>
-          <h2>{isStudent ? 'My Results & Grades' : 'Student Results & Grades'}</h2>
+          <h2>{isStudent ? 'My Results' : 'Student Results & Grades'}</h2>
         </Col>
-        {canAddResults && (
-          <Col xs="auto">
-            <Button variant="primary" onClick={() => setShowModal(true)}>
-              Add Result
+        {!isStudent && (
+          <Col md={4} className="d-flex justify-content-end">
+            <Button 
+              variant="primary" 
+              onClick={() => setShowModal(true)}
+            >
+              Add New Result
             </Button>
           </Col>
         )}
       </Row>
 
-      {error && <Alert variant="danger">{error}</Alert>}
-
-{!isStudent && (
+      {!isStudent && (
         <Card className="mb-4">
           <Card.Header>Filter Results</Card.Header>
           <Card.Body>
             <Row>
-              <Col md={4}>
-                <Form.Select
-                  value={selectedStudent}
-                  onChange={(e) => setSelectedStudent(e.target.value)}
-                >
-                  <option value="">All Students</option>
-                  {students.map(student => (
-                    <option key={student.id} value={student.id}>
-                      {student.studentId} - {student.firstName} {student.lastName}
-                    </option>
-                  ))}
-                </Form.Select>
+              <Col md={5}>
+                <Form.Group>
+                  <Form.Label>Filter by Student</Form.Label>
+                  <Form.Control
+                    as="select"
+                    value={selectedStudent}
+                    onChange={(e) => setSelectedStudent(e.target.value)}
+                  >
+                    <option value="">All Students</option>
+                    {students.map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {student.firstName} {student.lastName} ({student.studentId || 'N/A'})
+                      </option>
+                    ))}
+                  </Form.Control>
+                </Form.Group>
               </Col>
-              <Col md={4}>
-                <Form.Select
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                >
-                  <option value="">All Courses</option>
-                  {courses.map(course => (
-                    <option key={course.id} value={course.id}>
-                      {course.code} - {course.title}
-                    </option>
-                  ))}
-                </Form.Select>
+              <Col md={5}>
+                <Form.Group>
+                  <Form.Label>Filter by Course</Form.Label>
+                  <Form.Control
+                    as="select"
+                    value={selectedCourse}
+                    onChange={(e) => setSelectedCourse(e.target.value)}
+                  >
+                    <option value="">All Courses</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.code} - {course.title}
+                      </option>
+                    ))}
+                  </Form.Control>
+                </Form.Group>
               </Col>
-              <Col md={2}>
-                <Button variant="outline-primary" onClick={handleFilter}>
-                  Filter
-                </Button>
-              </Col>
-              <Col md={2}>
-                <Button variant="outline-secondary" onClick={handleReset}>
-                  Reset
-                </Button>
-              </Col>
-            </Row>
-          </Card.Body>
-        </Card>
-      )}
-
-      {isStudent && (
-        <Card className="mb-4">
-          <Card.Header>Filter by Course</Card.Header>
-          <Card.Body>
-            <Row>
-              <Col md={6}>
-                <Form.Select
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                >
-                  <option value="">All My Courses</option>
-                  {courses.map(course => (
-                    <option key={course.id} value={course.id}>
-                      {course.code} - {course.title}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-              <Col md={3}>
-                <Button variant="outline-primary" onClick={handleFilter}>
-                  Filter
-                </Button>
-              </Col>
-              <Col md={3}>
-                <Button variant="outline-secondary" onClick={handleReset}>
-                  Reset
-                </Button>
+              <Col md={2} className="d-flex align-items-end">
+                <ButtonGroup className="w-100">
+                  <Button variant="primary" onClick={handleFilter} className="me-2">
+                    Apply
+                  </Button>
+                  <Button variant="outline-secondary" onClick={handleReset}>
+                    Reset
+                  </Button>
+                </ButtonGroup>
               </Col>
             </Row>
           </Card.Body>
@@ -332,29 +290,29 @@ const ResultsList = () => {
 
       <Card>
         <Card.Header>
-          <h5>Results ({results.length})</h5>
+          <h5 className="mb-0">{isStudent ? 'My Results' : `Results (${results.length})`}</h5>
         </Card.Header>
         <Card.Body>
           {results.length === 0 ? (
-            <p className="text-center">No results found.</p>
+            <p className="text-center">No results found{!isStudent ? ' matching the selected filters' : ''}.</p>
           ) : (
             <Table responsive striped hover>
               <thead>
                 <tr>
-                  <th>Student</th>
+                  {!isStudent && <th>Student</th>}
                   <th>Course</th>
                   <th>Score</th>
                   <th>Grade</th>
                   <th>Exam Type</th>
                   <th>Date</th>
                   <th>Remarks</th>
-                  {canAddResults && <th>Actions</th>}
+                  {!isStudent && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {results.map(result => (
                   <tr key={result.id}>
-                    <td>{getStudentName(result.student)}</td>
+                    {!isStudent && <td>{getStudentName(result.student)}</td>}
                     <td>{getCourseInfo(result.course)}</td>
                     <td>
                       <Badge bg={result.score >= 80 ? 'success' : result.score >= 60 ? 'warning' : 'danger'}>
@@ -363,9 +321,9 @@ const ResultsList = () => {
                     </td>
                     <td>{getGradeBadge(result.grade)}</td>
                     <td>{result.examType}</td>
-                    <td>{new Date(result.examDate).toLocaleDateString()}</td>
+                    <td>{result.examDate ? new Date(result.examDate).toLocaleDateString() : '-'}</td>
                     <td>{result.remarks || '-'}</td>
-                    {canAddResults && (
+                    {!isStudent && (
                       <td>
                         <Dropdown as={ButtonGroup}>
                           <Dropdown.Toggle 
@@ -377,14 +335,14 @@ const ResultsList = () => {
                           </Dropdown.Toggle>
                           <Dropdown.Menu>
                             <Dropdown.Item onClick={() => handleUpdate(result)}>
-                              📝 Edit Result
+                              Edit
                             </Dropdown.Item>
                             <Dropdown.Divider />
                             <Dropdown.Item 
                               onClick={() => handleDelete(result.id)}
                               className="text-danger"
                             >
-                              🗑️ Delete Result
+                              Delete
                             </Dropdown.Item>
                           </Dropdown.Menu>
                         </Dropdown>
@@ -398,6 +356,7 @@ const ResultsList = () => {
         </Card.Body>
       </Card>
 
+      {/* Add Result Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Add New Result</Modal.Title>
@@ -405,28 +364,32 @@ const ResultsList = () => {
         <Modal.Body>
           <Form>
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Student</Form.Label>
-                  <Form.Select
-                    value={newResult.studentId}
-                    onChange={(e) => setNewResult({...newResult, studentId: e.target.value})}
-                  >
-                    <option value="">Select a student</option>
-                    {students.map(student => (
-                      <option key={student.id} value={student.id}>
-                        {student.studentId} - {student.firstName} {student.lastName}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
+              {!isStudent && (
+                <Col md={12}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Student</Form.Label>
+                    <Form.Select
+                      value={newResult.studentId}
+                      onChange={(e) => setNewResult({...newResult, studentId: e.target.value})}
+                      required
+                    >
+                      <option value="">Select a student</option>
+                      {students.map(student => (
+                        <option key={student.id} value={student.id}>
+                          {student.studentId} - {student.firstName} {student.lastName}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              )}
+              <Col md={isStudent ? 12 : 6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Course</Form.Label>
                   <Form.Select
                     value={newResult.courseId}
                     onChange={(e) => setNewResult({...newResult, courseId: e.target.value})}
+                    required
                   >
                     <option value="">Select a course</option>
                     {courses.map(course => (
@@ -437,23 +400,22 @@ const ResultsList = () => {
                   </Form.Select>
                 </Form.Group>
               </Col>
-            </Row>
-            <Row>
-              <Col md={4}>
+              <Col md={isStudent ? 6 : 3}>
                 <Form.Group className="mb-3">
                   <Form.Label>Score (%)</Form.Label>
                   <Form.Control
                     type="number"
                     min="0"
                     max="100"
-                    step="0.1"
+                    step="0.01"
                     value={newResult.score}
                     onChange={(e) => setNewResult({...newResult, score: e.target.value})}
                     placeholder="Enter score"
+                    required
                   />
                 </Form.Group>
               </Col>
-              <Col md={4}>
+              <Col md={isStudent ? 6 : 3}>
                 <Form.Group className="mb-3">
                   <Form.Label>Exam Type</Form.Label>
                   <Form.Select
@@ -461,35 +423,26 @@ const ResultsList = () => {
                     onChange={(e) => setNewResult({...newResult, examType: e.target.value})}
                   >
                     <option value="FINAL">Final Exam</option>
-                    <option value="MIDTERM">Midterm Exam</option>
+                    <option value="MIDTERM">Midterm</option>
                     <option value="QUIZ">Quiz</option>
                     <option value="ASSIGNMENT">Assignment</option>
                     <option value="PROJECT">Project</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
-              <Col md={4}>
+              <Col md={12}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Grade</Form.Label>
+                  <Form.Label>Remarks</Form.Label>
                   <Form.Control
-                    type="text"
-                    value={newResult.score ? getGradeFromScore(parseFloat(newResult.score)) : ''}
-                    disabled
-                    placeholder="Auto-calculated"
+                    as="textarea"
+                    rows={2}
+                    value={newResult.remarks}
+                    onChange={(e) => setNewResult({...newResult, remarks: e.target.value})}
+                    placeholder="Optional remarks"
                   />
                 </Form.Group>
               </Col>
             </Row>
-            <Form.Group className="mb-3">
-              <Form.Label>Remarks</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                value={newResult.remarks}
-                onChange={(e) => setNewResult({...newResult, remarks: e.target.value})}
-                placeholder="Optional remarks"
-              />
-            </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
@@ -497,11 +450,12 @@ const ResultsList = () => {
             Cancel
           </Button>
           <Button variant="primary" onClick={handleCreateResult}>
-            Add Result
+            Save Result
           </Button>
         </Modal.Footer>
       </Modal>
 
+      {/* Edit Result Modal */}
       <Modal show={showUpdateModal} onHide={() => setShowUpdateModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Update Result</Modal.Title>
@@ -514,10 +468,11 @@ const ResultsList = () => {
                 type="number"
                 min="0"
                 max="100"
-                step="0.1"
+                step="0.01"
                 value={updateData.score}
                 onChange={(e) => setUpdateData({...updateData, score: e.target.value})}
                 placeholder="Enter score (0-100)"
+                required
               />
             </Form.Group>
             <Form.Group className="mb-3">
@@ -527,7 +482,7 @@ const ResultsList = () => {
                 onChange={(e) => setUpdateData({...updateData, examType: e.target.value})}
               >
                 <option value="FINAL">Final Exam</option>
-                <option value="MIDTERM">Midterm Exam</option>
+                <option value="MIDTERM">Midterm</option>
                 <option value="QUIZ">Quiz</option>
                 <option value="ASSIGNMENT">Assignment</option>
                 <option value="PROJECT">Project</option>
@@ -540,7 +495,7 @@ const ResultsList = () => {
                 rows={3}
                 value={updateData.remarks}
                 onChange={(e) => setUpdateData({...updateData, remarks: e.target.value})}
-                placeholder="Optional remarks..."
+                placeholder="Optional remarks"
               />
             </Form.Group>
           </Form>
@@ -559,17 +514,16 @@ const ResultsList = () => {
 };
 
 const getGradeFromScore = (score) => {
-  if (score >= 85) return 'A+';
-  if (score >= 70) return 'A';
-  if (score >= 65) return 'A-';
-  if (score >= 60) return 'B+';
-  if (score >= 55) return 'B';
-  if (score >= 50) return 'B-';
-  if (score >= 45) return 'C+';
-  if (score >= 40) return 'C';
-  if (score >= 35) return 'C-';
-  if (score >= 30) return 'D+';
-  if (score >= 25) return 'D';
+  if (score >= 85) return 'A';
+  if (score >= 80) return 'A-';
+  if (score >= 75) return 'B+';
+  if (score >= 70) return 'B';
+  if (score >= 65) return 'B-';
+  if (score >= 60) return 'C+';
+  if (score >= 55) return 'C';
+  if (score >= 50) return 'C-';
+  if (score >= 45) return 'D+';
+  if (score >= 40) return 'D';
   return 'F';
 };
 
