@@ -65,9 +65,9 @@ const StudentRegister = () => {
       <Row className="justify-content-center">
         <Col md={6} lg={5}>
           <Card>
-            <Card.Header className="text-center bg-primary text-white">
-              <h4>Student Registration</h4>
-              <p className="mb-0">Create account using your University Student ID</p>
+            <Card.Header className="text-center bg-success text-white">
+              <h4><i className="bi bi-mortarboard-fill me-2"></i>Student Registration</h4>
+              <p className="mb-0">Create your university account</p>
             </Card.Header>
             <Card.Body>
               {error && <Alert variant="danger">{error}</Alert>}
@@ -75,7 +75,7 @@ const StudentRegister = () => {
               
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Student ID</Form.Label>
+                  <Form.Label><i className="bi bi-person-badge me-1"></i>Student ID</Form.Label>
                   <Form.Control
                     type="text"
                     name="studentId"
@@ -86,14 +86,13 @@ const StudentRegister = () => {
                     autoComplete="username"
                   />
                   <Form.Text className="text-muted">
-                    Use the Student ID provided by the university<br />
-                    <strong>Available for testing:</strong> S003, S004, S005<br />
-                    <small>(S001 and S002 already have accounts)</small>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Use the Student ID provided by the university registrar
                   </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Password</Form.Label>
+                  <Form.Label><i className="bi bi-lock me-1"></i>Password</Form.Label>
                   <Form.Control
                     type="password"
                     name="password"
@@ -101,13 +100,16 @@ const StudentRegister = () => {
                     onChange={handleChange}
                     required
                     minLength="6"
-                    placeholder="Create a password (min 6 characters)"
+                    placeholder="Create a secure password"
                     autoComplete="new-password"
                   />
+                  <Form.Text className="text-muted">
+                    Minimum 6 characters required
+                  </Form.Text>
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Confirm Password</Form.Label>
+                <Form.Group className="mb-4">
+                  <Form.Label><i className="bi bi-lock-fill me-1"></i>Confirm Password</Form.Label>
                   <Form.Control
                     type="password"
                     name="confirmPassword"
@@ -124,7 +126,6 @@ const StudentRegister = () => {
                     variant="primary" 
                     type="submit" 
                     disabled={loading}
-                    size="lg"
                   >
                     {loading ? (
                       <>
@@ -136,26 +137,40 @@ const StudentRegister = () => {
                           aria-hidden="true"
                           className="me-2"
                         />
-                        Creating Account...
+                        Creating Your Account...
                       </>
                     ) : (
-                      'Create Student Account'
+                      <>
+                        <i className="bi bi-person-plus me-2"></i>
+                        Create Account
+                      </>
                     )}
                   </Button>
                 </div>
               </Form>
 
-              <hr />
-              
-              <div className="text-center">
-                <p className="mb-2">
-                  Already have an account? <Link to="/login">Login here</Link>
-                </p>
-                <p className="mb-0">
-                  <small className="text-muted">
-                    Staff registration? <Link to="/register">Register as Staff</Link>
-                  </small>
-                </p>
+              <div className="text-center mt-4">
+                <div className="border-top pt-3">
+                  <p className="text-muted mb-2">Already have an account?</p>
+                  <Link to="/login" className="btn btn-outline-primary">
+                    <i className="bi bi-box-arrow-in-right me-2"></i>
+                    Sign In Instead
+                  </Link>
+                </div>
+              </div>
+
+              <div className="text-center mt-3">
+                <small className="text-muted">
+                  <i className="bi bi-briefcase me-1"></i>
+                  Staff member? <Link to="/register">Register as Staff</Link>
+                </small>
+              </div>
+
+              <div className="text-center mt-3">
+                <small className="text-muted">
+                  <i className="bi bi-shield-check me-1"></i>
+                  Your student information is secure and confidential
+                </small>
               </div>
             </Card.Body>
           </Card>

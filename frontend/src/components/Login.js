@@ -120,27 +120,26 @@ const Login = ({ onLogin }) => {
 
               <hr />
               
-              <div className="text-center">
-                <p className="mb-2">
-                  <strong>New User?</strong>
-                </p>
-                <p className="mb-1">
-                  <Link to="/register/student" className="btn btn-outline-primary btn-sm me-2">
-                    Student Registration
-                  </Link>
-                  <Link to="/register" className="btn btn-outline-secondary btn-sm">
-                    Staff Registration
-                  </Link>
-                </p>
+              <div className="text-center mt-4">
+                <div className="border-top pt-3">
+                  <p className="text-muted mb-2">Don't have an account?</p>
+                  <div className="d-grid gap-2">
+                    <Link to="/register/student" className="btn btn-outline-primary">
+                      <i className="bi bi-person-plus me-2"></i>
+                      Register as Student
+                    </Link>
+                    <Link to="/register" className="btn btn-outline-secondary">
+                      <i className="bi bi-briefcase me-2"></i>
+                      Register as Staff
+                    </Link>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-3">
+              <div className="text-center mt-3">
                 <small className="text-muted">
-                  <strong>Demo Accounts:</strong><br />
-                  Admin: admin/password<br />
-                  Instructor: instructor/password<br />
-                  Students: Use Student ID from university records<br />
-                  Registrar: registrar/password
+                  <i className="bi bi-info-circle me-1"></i>
+                  Contact your administrator if you need assistance with login credentials
                 </small>
               </div>
             </Card.Body>
