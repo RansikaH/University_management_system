@@ -1,0 +1,35 @@
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+
+# Build with API URL
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Simple nginx config for Railway
+COPY <<EOF /etc/nginx/nginx.conf
+events {
+    worker_connections 1024;
+}
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    server {
+        listen 8080;
+        root /usr/share/nginx/html;
+        index index.html;
+        location / {
+            try_files \$uri \$uri/ /index.html;
+        }
+    }
+}
+EOF
+
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]
