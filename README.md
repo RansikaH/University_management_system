@@ -30,14 +30,51 @@ A modern enterprise-level web application built with Spring Boot and React.js fo
 - ✅ **Results & Grading System**: Complete grade management with multiple exam types and automatic calculations
 - ✅ **Student Transcript System**: Individual academic transcripts with GPA calculation and performance analytics
 - ✅ **Course Results Analysis**: Course performance dashboards with grade distribution and statistics
+- ✅ **User Management System**: Complete user administration with role-based access control
+- ✅ **Authentication & Authorization**: JWT-based secure login system with role-based permissions
 
 ### 🔧 **Technical Features**
-- ✅ **REST API**: 25+ RESTful endpoints with comprehensive CRUD operations
+- ✅ **REST API**: 30+ RESTful endpoints with comprehensive CRUD operations
+- ✅ **JWT Authentication**: Secure token-based authentication with role-based access control
+- ✅ **Spring Security**: Enterprise-grade security with password encryption and endpoint protection
+- ✅ **Role-Based Access Control**: Four user roles (ADMIN, INSTRUCTOR, REGISTRAR, STUDENT) with granular permissions
 - ✅ **Advanced Search**: Real-time search across courses, students, and results with filtering
 - ✅ **Database Integration**: JPA/Hibernate with MySQL and H2 support
 - ✅ **Data Validation**: Client and server-side validation with error handling
 - ✅ **Responsive Design**: Mobile-first Bootstrap design with modern UI components
 - ✅ **Real-time Updates**: Dynamic data fetching with loading states and auto-refresh
+
+### 🛡️ Security & Authentication
+
+The system implements enterprise-grade security with JWT-based authentication and role-based access control.
+
+### User Roles & Permissions
+
+| Role | Permissions |
+|------|-------------|
+| **ADMIN** | Full system access, user management, all CRUD operations across all modules |
+| **INSTRUCTOR** | Course management (add/edit/delete), grade entry, view students and registrations (read-only) |
+| **REGISTRAR** | Student management (add/edit/delete), registration management (add/edit/delete), view courses (read-only) |
+| **STUDENT** | View own courses, grades, transcripts, and create new registrations |
+
+### Role-Based UI Features
+- **Dynamic Navigation**: Menu items shown/hidden based on user role
+- **Action Restrictions**: Add/Edit/Delete buttons hidden for unauthorized roles
+- **Data Access Control**: Users only see data relevant to their role and permissions
+- **Dashboard Customization**: Role-specific quick actions and information panels
+
+### Demo Accounts
+- **Admin**: `admin` / `password`
+- **Instructor**: `instructor` / `password`
+- **Registrar**: `registrar` / `password`
+- **Student**: `student` / `password`
+
+### Security Features
+- **JWT Token Authentication**: Secure, stateless authentication
+- **Password Encryption**: BCrypt hashing for secure password storage
+- **Endpoint Protection**: Spring Security guards all API endpoints
+- **CORS Configuration**: Secure cross-origin resource sharing
+- **Role-Based Authorization**: Granular permissions at both API and UI levels
 
 ### 📊 **Analytics & Reporting**
 - ✅ **Dashboard Analytics**: Real-time statistics and performance metrics
@@ -138,7 +175,26 @@ cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 ```
 
-## 📊 API Endpoints
+### 📊 API Endpoints
+
+### 🔐 Authentication & User Management API
+- `POST /api/auth/login` - User login with JWT token generation
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/register/student` - Student-specific registration
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current authenticated user
+- `GET /api/auth/current/student` - Get current user's student data
+- `GET /api/auth/roles` - Get available user roles
+
+### 👤 User Management API (Admin Only)
+- `GET /api/users` - Get all users
+- `GET /api/users/{id}` - Get user by ID
+- `GET /api/users/role/{role}` - Get users by role
+- `GET /api/users/search?name={name}` - Search users by name
+- `GET /api/users/stats` - Get user statistics
+- `PUT /api/users/{id}` - Update user
+- `PUT /api/users/{id}/toggle-status` - Toggle user active status
+- `DELETE /api/users/{id}` - Delete user
 
 ### 📚 Course Management API
 - `GET /api/courses` - Get all courses
@@ -164,8 +220,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 - `GET /api/registrations` - Get all registrations
 - `GET /api/registrations/student/{studentId}` - Get registrations by student
 - `GET /api/registrations/course/{courseId}` - Get registrations by course
+- `GET /api/registrations/my-registrations` - Get current user's registrations
 - `POST /api/registrations` - Create new registration
-- `PUT /api/registrations/{id}` - Update registration (status, grade)
+- `PUT /api/registrations/{id}` - Update registration (status)
 - `DELETE /api/registrations/{id}` - Delete registration
 
 ### 📊 Results & Grading API
@@ -177,6 +234,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 - `GET /api/results/student/{studentId}/gpa` - Calculate student GPA
 - `GET /api/results/student/{studentId}/average` - Get student average score
 - `GET /api/results/course/{courseId}/average` - Get course average score
+- `GET /api/results/my-results` - Get current user's results
+- `GET /api/results/my-gpa` - Get current user's GPA
+- `GET /api/results/my-average` - Get current user's average
 - `POST /api/results` - Create new result
 - `PUT /api/results/{id}` - Update result
 - `DELETE /api/results/{id}` - Delete result
